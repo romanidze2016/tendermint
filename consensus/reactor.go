@@ -18,6 +18,7 @@ import (
 	"github.com/tendermint/tendermint/p2p"
 	sm "github.com/tendermint/tendermint/state"
 	"github.com/tendermint/tendermint/types"
+	"github.com/Masterminds/glide/msg"
 )
 
 const (
@@ -155,6 +156,8 @@ func (conR *ConsensusReactor) AddPeer(peer p2p.Peer) {
 	go conR.gossipVotesRoutine(peer, peerState)
 	go conR.queryMaj23Routine(peer, peerState)
 
+	go conR.testRoutine(peer, peerState)
+
 	// Send our state to peer.
 	// If we're fast_syncing, broadcast a RoundStepMessage later upon SwitchToConsensus().
 	if !conR.FastSync() {
@@ -195,6 +198,14 @@ func (conR *ConsensusReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 	ps := src.Get(types.PeerStateKey).(*PeerState)
 
 	switch chID {
+	case RedBellyChannel:
+		switch msg := msg.(type) {
+		case string:
+			fmt.Println("Received message: " + msg + " from " + src.NodeInfo().RemoteAddr)
+		default:
+			fmt.Println("Received message from " + src.NodeInfo().RemoteAddr + " but msg.(type) not recognised")
+		}
+
 	case StateChannel:
 		switch msg := msg.(type) {
 		case *NewRoundStepMessage:
@@ -672,6 +683,20 @@ OUTER_LOOP:
 
 		time.Sleep(conR.conS.config.PeerGossipSleep())
 		continue OUTER_LOOP
+	}
+}
+
+func (conR *ConsensusReactor) testRoutine(peer p2p.Peer, ps *PeerState) {
+	//logger := conR.Logger.With("peer", peer)
+
+	for {
+		if peer.Send(DataChannel, "just a message from the ROMARIO") {
+			fmt.Println("Message sent to " + peer.NodeInfo().RemoteAddr)
+		} else {
+			fmt.Println("Message to " + peer.NodeInfo().RemoteAddr + " was not sent")
+		}
+
+		time.Sleep(20*time.Second)
 	}
 }
 
