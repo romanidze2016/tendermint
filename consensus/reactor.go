@@ -18,7 +18,7 @@ import (
 	"github.com/tendermint/tendermint/p2p"
 	sm "github.com/tendermint/tendermint/state"
 	"github.com/tendermint/tendermint/types"
-	"github.com/Masterminds/glide/msg"
+	//"github.com/Masterminds/glide/msg"
 )
 
 const (
@@ -201,7 +201,7 @@ func (conR *ConsensusReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 	case RedBellyChannel:
 		switch msg := msg.(type) {
 		case string:
-			fmt.Println("Received message: " + msg + " from " + src.NodeInfo().RemoteAddr)
+			fmt.Println("Received message: " + string(msg) + " from " + src.NodeInfo().RemoteAddr)
 		default:
 			fmt.Println("Received message from " + src.NodeInfo().RemoteAddr + " but msg.(type) not recognised")
 		}
