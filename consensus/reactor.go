@@ -25,6 +25,7 @@ const (
 	DataChannel        = byte(0x21)
 	VoteChannel        = byte(0x22)
 	VoteSetBitsChannel = byte(0x23)
+	RedBellyChannel    = byte(0x24)
 
 	maxConsensusMessageSize = 1048576 // 1MB; NOTE/TODO: keep in sync with types.PartSet sizes.
 )
@@ -126,8 +127,14 @@ func (conR *ConsensusReactor) GetChannels() []*p2p.ChannelDescriptor {
 		},
 		{
 			ID:                 VoteSetBitsChannel,
-			Priority:           1,
+			Priority:           2,
 			SendQueueCapacity:  2,
+			RecvBufferCapacity: 1024,
+		},
+		{
+			ID:                 RedBellyChannel,
+			Priority:           1,
+			SendQueueCapacity:  100,
 			RecvBufferCapacity: 1024,
 		},
 	}
