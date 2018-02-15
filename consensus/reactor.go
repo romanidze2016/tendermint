@@ -47,6 +47,7 @@ type ConsensusReactor struct {
 
 type MyMessage struct {
 	id int
+	name string
 }
 
 // NewConsensusReactor returns a new ConsensusReactor with the given consensusState.
@@ -704,7 +705,8 @@ func (conR *ConsensusReactor) testRoutine(peer p2p.Peer, ps *PeerState) {
 	}*/
 
 	msg := &MyMessage{
-		id: 13,
+		id: 2,
+		name: "ROMARIO",
 	}
 
 	for {
