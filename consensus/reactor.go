@@ -209,7 +209,7 @@ func (conR *ConsensusReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 		case *BlockPartMessage:
 			fmt.Println("Received message: " + strconv.Itoa(msg.Round) + " from " + src.NodeInfo().RemoteAddr)
 		case *MyMessage:
-			fmt.Println("Received message: " + strconv.Itoa(msg.Id) + " >> " + msg.Name + " from " + src.NodeInfo().RemoteAddr)
+			fmt.Println("Received message: " + strconv.Itoa(msg.Id) + " >>> " + msg.Name + " from " + src.NodeInfo().RemoteAddr)
 		default:
 			fmt.Println("Received message from " + src.NodeInfo().RemoteAddr + " but msg.(type) not recognised")
 		}
