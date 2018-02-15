@@ -1270,6 +1270,8 @@ const (
 	msgTypeVoteSetBits  = byte(0x17)
 
 	msgTypeProposalHeartbeat = byte(0x20)
+
+	msgTypeMyMessage = byte(0x21)
 )
 
 // ConsensusMessage is a message that can be sent and received on the ConsensusReactor
@@ -1287,6 +1289,7 @@ var _ = wire.RegisterInterface(
 	wire.ConcreteType{&VoteSetMaj23Message{}, msgTypeVoteSetMaj23},
 	wire.ConcreteType{&VoteSetBitsMessage{}, msgTypeVoteSetBits},
 	wire.ConcreteType{&ProposalHeartbeatMessage{}, msgTypeProposalHeartbeat},
+	wire.ConcreteType{&MyMessage{}, msgTypeMyMessage},
 )
 
 // DecodeMessage decodes the given bytes into a ConsensusMessage.
