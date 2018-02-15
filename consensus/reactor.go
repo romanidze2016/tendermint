@@ -47,7 +47,6 @@ type ConsensusReactor struct {
 
 type MyMessage struct {
 	id int
-	name string
 }
 
 // NewConsensusReactor returns a new ConsensusReactor with the given consensusState.
@@ -122,7 +121,7 @@ func (conR *ConsensusReactor) GetChannels() []*p2p.ChannelDescriptor {
 		},
 		{
 			ID:                 DataChannel, // maybe split between gossiping current block and catchup stuff
-			Priority:           10,          // once we gossip the whole block there's nothing left to send until next height or round
+			Priority:           1,          // once we gossip the whole block there's nothing left to send until next height or round
 			SendQueueCapacity:  100,
 			RecvBufferCapacity: 50 * 4096,
 		},
@@ -140,7 +139,7 @@ func (conR *ConsensusReactor) GetChannels() []*p2p.ChannelDescriptor {
 		},
 		{
 			ID:                 RedBellyChannel,
-			Priority:           1,
+			Priority:           10,
 			SendQueueCapacity:  100,
 			RecvBufferCapacity: 50 * 4096,
 		},
@@ -209,7 +208,7 @@ func (conR *ConsensusReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 		case *BlockPartMessage:
 			fmt.Println("Received message: " + strconv.Itoa(msg.Round) + " from " + src.NodeInfo().RemoteAddr)
 		case *MyMessage:
-			fmt.Println("Received message: " + strconv.Itoa(msg.id) + " " + msg.name + " from " + src.NodeInfo().RemoteAddr)
+			fmt.Println("Received message: " + strconv.Itoa(msg.id) + " from " + src.NodeInfo().RemoteAddr)
 		default:
 			fmt.Println("Received message from " + src.NodeInfo().RemoteAddr + " but msg.(type) not recognised")
 		}
@@ -706,7 +705,6 @@ func (conR *ConsensusReactor) testRoutine(peer p2p.Peer, ps *PeerState) {
 
 	msg := &MyMessage{
 		id: 2,
-		name: "ROMARIO",
 	}
 
 	for {
@@ -1265,7 +1263,7 @@ const (
 	msgTypeCommitStep   = byte(0x02)
 	msgTypeProposal     = byte(0x11)
 	msgTypeProposalPOL  = byte(0x12)
-	msgTypeBlockPart    = byte(0x13) // both block & POL
+	msgTypeBlockPart    = byte(0x18) // both block & POL
 	msgTypeVote         = byte(0x14)
 	msgTypeHasVote      = byte(0x15)
 	msgTypeVoteSetMaj23 = byte(0x16)
@@ -1273,7 +1271,7 @@ const (
 
 	msgTypeProposalHeartbeat = byte(0x20)
 
-	msgTypeMyMessage = byte(0x18)
+	msgTypeMyMessage = byte(0x13)
 )
 
 // ConsensusMessage is a message that can be sent and received on the ConsensusReactor
