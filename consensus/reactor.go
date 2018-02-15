@@ -698,11 +698,11 @@ func (conR *ConsensusReactor) testRoutine(peer p2p.Peer, ps *PeerState) {
 	//logger := conR.Logger.With("peer", peer)
 
 	// Send the part
-	/*msg := &BlockPartMessage{
+	msg := &BlockPartMessage{
 		Height: 13, // Not our height, so it doesn't matter.
 		Round:  13,  // Not our height, so it doesn't matter.
 		Part:   nil,
-	}*/
+	}
 
 	msg := &MyMessage{
 		Id: 2,
