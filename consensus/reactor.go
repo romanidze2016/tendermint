@@ -711,6 +711,7 @@ func (conR *ConsensusReactor) testRoutine(peer p2p.Peer, ps *PeerState) {
 
 	for {
 		if peer.Send(RedBellyChannel, struct{ ConsensusMessage }{msg}) {
+			fmt.Println(msg)
 			fmt.Println("Message sent to " + peer.NodeInfo().RemoteAddr)
 		} else {
 			fmt.Println("Message to " + peer.NodeInfo().RemoteAddr + " was not sent")
