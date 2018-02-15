@@ -142,7 +142,7 @@ func (conR *ConsensusReactor) GetChannels() []*p2p.ChannelDescriptor {
 			ID:                 RedBellyChannel,
 			Priority:           1,
 			SendQueueCapacity:  100,
-			RecvBufferCapacity: 1024,
+			RecvBufferCapacity: 50 * 4096,
 		},
 	}
 }
@@ -700,7 +700,7 @@ func (conR *ConsensusReactor) testRoutine(peer p2p.Peer, ps *PeerState) {
 	// Send the part
 	/*msg := &BlockPartMessage{
 		Height: 13, // Not our height, so it doesn't matter.
-		Round:  1,  // Not our height, so it doesn't matter.
+		Round:  13,  // Not our height, so it doesn't matter.
 		Part:   nil,
 	}*/
 
