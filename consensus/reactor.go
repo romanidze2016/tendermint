@@ -19,6 +19,7 @@ import (
 	sm "github.com/tendermint/tendermint/state"
 	"github.com/tendermint/tendermint/types"
 	//"github.com/Masterminds/glide/msg"
+	"strconv"
 )
 
 const (
@@ -200,8 +201,8 @@ func (conR *ConsensusReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 	switch chID {
 	case RedBellyChannel:
 		switch msg := msg.(type) {
-		case string:
-			fmt.Println("Received message: " + string(msg) + " from " + src.NodeInfo().RemoteAddr)
+		case *BlockPartMessage:
+			fmt.Println("Received message: " + strconv.Itoa(msg.Round) + " from " + src.NodeInfo().RemoteAddr)
 		default:
 			fmt.Println("Received message from " + src.NodeInfo().RemoteAddr + " but msg.(type) not recognised")
 		}
@@ -689,8 +690,15 @@ OUTER_LOOP:
 func (conR *ConsensusReactor) testRoutine(peer p2p.Peer, ps *PeerState) {
 	//logger := conR.Logger.With("peer", peer)
 
+	// Send the part
+	msg := &BlockPartMessage{
+		Height: 13, // Not our height, so it doesn't matter.
+		Round:  1,  // Not our height, so it doesn't matter.
+		Part:   nil,
+	}
+
 	for {
-		if peer.Send(DataChannel, "just a message from the ROMARIO") {
+		if peer.Send(DataChannel, struct{ ConsensusMessage }{msg}) {
 			fmt.Println("Message sent to " + peer.NodeInfo().RemoteAddr)
 		} else {
 			fmt.Println("Message to " + peer.NodeInfo().RemoteAddr + " was not sent")
