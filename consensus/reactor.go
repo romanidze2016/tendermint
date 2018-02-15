@@ -209,7 +209,7 @@ func (conR *ConsensusReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 		case *BlockPartMessage:
 			fmt.Println("Received message: " + strconv.Itoa(msg.Round) + " from " + src.NodeInfo().RemoteAddr)
 		case *MyMessage:
-			fmt.Println("Received message: " + strconv.Itoa(msg.id) + " " + msg.name + " from " + src.NodeInfo().RemoteAddr)
+			fmt.Println("Received message: " + strconv.Itoa(msg.id) + " >> " + msg.name + " from " + src.NodeInfo().RemoteAddr)
 		default:
 			fmt.Println("Received message from " + src.NodeInfo().RemoteAddr + " but msg.(type) not recognised")
 		}
@@ -698,16 +698,16 @@ func (conR *ConsensusReactor) testRoutine(peer p2p.Peer, ps *PeerState) {
 	//logger := conR.Logger.With("peer", peer)
 
 	// Send the part
-	/*msg := &BlockPartMessage{
+	msg := &BlockPartMessage{
 		Height: 13, // Not our height, so it doesn't matter.
 		Round:  13,  // Not our height, so it doesn't matter.
 		Part:   nil,
-	}*/
+	}
 
-	msg := &MyMessage{
+	/*msg := &MyMessage{
 		id: 2,
 		name: "ROMARIO",
-	}
+	}*/
 
 	for {
 		if peer.Send(RedBellyChannel, struct{ ConsensusMessage }{msg}) {
