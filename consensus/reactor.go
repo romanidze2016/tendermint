@@ -1271,7 +1271,7 @@ const (
 
 	msgTypeProposalHeartbeat = byte(0x20)
 
-	msgTypeMyMessage = byte(0x21)
+	msgTypeMyMessage = byte(0x64)
 )
 
 // ConsensusMessage is a message that can be sent and received on the ConsensusReactor
