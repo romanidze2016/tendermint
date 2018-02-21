@@ -19,6 +19,8 @@ import (
 	cstypes "github.com/tendermint/tendermint/consensus/types"
 	sm "github.com/tendermint/tendermint/state"
 	"github.com/tendermint/tendermint/types"
+	"github.com/go-playground/locales/cs"
+	"github.com/tendermint/go-wire/data"
 )
 
 //-----------------------------------------------------------------------------
@@ -111,6 +113,14 @@ type ConsensusState struct {
 
 	// closed when we finish shutting down
 	done chan struct{}
+
+	//RB variables
+	RB_Proposals           map[*types.Validator]*types.Proposal
+	RB_ProposalBlocks      map[*types.Validator]*types.Block
+	RB_ProposalBlockParts  map[*types.Validator]*types.PartSet
+
+	RB_ProposalsChannel chan *types.Proposal
+	RB_BlockPartsChannel chan *types.PartSet
 }
 
 // NewConsensusState returns a new ConsensusState.
@@ -138,6 +148,15 @@ func NewConsensusState(config *cfg.ConsensusConfig, state sm.State, blockExec *s
 	// We do that upon Start().
 	cs.reconstructLastCommit(state)
 	cs.BaseService = *cmn.NewBaseService(nil, "ConsensusState", cs)
+
+	//RB
+	cs.RB_Proposals = make(map[*types.Validator]*types.Proposal)
+	cs.RB_ProposalBlocks = make(map[*types.Validator]*types.Block)
+	cs.RB_ProposalBlockParts = make(map[*types.Validator]*types.PartSet)
+
+	cs.RB_ProposalsChannel = make(chan *types.Proposal)
+	cs.RB_BlockPartsChannel = make(chan *types.PartSet)
+
 	return cs
 }
 
@@ -587,6 +606,10 @@ func (cs *ConsensusState) handleMsg(mi msgInfo) {
 		// TODO: If rs.Height == vote.Height && rs.Round < vote.Round,
 		// the peer is sending us CatchupCommit precommits.
 		// We could make note of this and help filter in broadcastHasVoteMessage().
+	case *RB_ProposalMessage:
+		cs.RB_deliverProposal(msg.Proposal, peerKey)
+	case *RB_BlockPartMessage:
+		cs.RB_deliverBlockPart(msg.Height, msg.Part, peerKey)
 	default:
 		cs.Logger.Error("Unknown msg type", reflect.TypeOf(msg))
 	}
@@ -634,6 +657,7 @@ func (cs *ConsensusState) handleTxsAvailable(height int64) {
 	cs.mtx.Lock()
 	defer cs.mtx.Unlock()
 	// we only need to do this for round 0
+	cs.RB_broadcast(height)
 	cs.enterPropose(height, 0)
 }
 
@@ -782,6 +806,77 @@ func (cs *ConsensusState) enterPropose(height int64, round int) {
 		cs.Logger.Debug("This node is a validator")
 		cs.decideProposal(height, round)
 	}
+}
+
+func (cs *ConsensusState) RB_broadcast(height int64) {
+	if cs.Height != height {
+		cs.Logger.Debug(cmn.Fmt("RB_broadcast(%v): Invalid args. Current step: %v/%v/%v", height, cs.Height, cs.Round, cs.Step))
+		return
+	}
+	cs.Logger.Info(cmn.Fmt("RB_broadcast(%v). Current: %v/%v/%v", height, cs.Height, cs.Round, cs.Step))
+
+	// Nothing more to do if we're not a validator
+	if cs.privValidator == nil {
+		cs.Logger.Debug("This node is not a validator")
+		return
+	}
+
+	cs.Logger.Info("RB_broadcast: broadcasting a block to everyone", "proposer", cs.Validators.GetProposer().Address, "privValidator", cs.privValidator)
+	cs.Logger.Debug("This node is a validator")
+
+
+	//create and broadcast a block
+	var block *types.Block
+	var blockParts *types.PartSet
+
+	// Decide on block
+	if cs.LockedBlock != nil {
+		// If we're locked onto a block, just choose that.
+		block, blockParts = cs.LockedBlock, cs.LockedBlockParts
+	} else {
+		// Create a new proposal block from state/txs from the mempool.
+		block, blockParts = cs.createProposalBlock()
+		if block == nil { // on error
+			return
+		}
+	}
+
+	// Make proposal
+	polRound, polBlockID := cs.Votes.POLInfo()
+	proposal := types.NewProposal(height, 0, blockParts.Header(), polRound, polBlockID)
+	if err := cs.privValidator.SignProposal(cs.state.ChainID, proposal); err == nil {
+		// Set fields
+		/*  fields set by setProposal and addBlockPart
+		cs.Proposal = proposal
+		cs.ProposalBlock = block
+		cs.ProposalBlockParts = blockParts
+		*/
+
+		//save the proposal and the block locally
+		_, localValidator := cs.Validators.GetByAddress(cs.privValidator.GetAddress())
+		cs.RB_Proposals[localValidator] = proposal
+		cs.RB_ProposalBlocks[localValidator] = block
+		cs.RB_ProposalBlockParts[localValidator] = blockParts
+
+		// send proposal and block parts on internal msg queue
+		cs.RB_ProposalsChannel <- proposal
+		cs.RB_BlockPartsChannel <- blockParts
+
+		cs.Logger.Info("Signed proposal", "height", height, "proposal", proposal)
+		cs.Logger.Debug(cmn.Fmt("Signed proposal block: %v", block))
+	} else {
+		if !cs.replayMode {
+			cs.Logger.Error("enterPropose: Error signing proposal", "height", height, "err", err)
+		}
+	}
+}
+
+func (cs *ConsensusState) RB_deliverProposal(proposal *types.Proposal, peerKey string) {
+	fmt.Println("Proposal received from " + peerKey + " peer but not saved")
+}
+
+func (cs *ConsensusState) RB_deliverBlockPart(height int64, blockPart *types.Part, peerKey string) {
+	fmt.Println("BlockPart received from " + peerKey + " peer but not added")
 }
 
 func (cs *ConsensusState) isProposer() bool {

@@ -20,6 +20,9 @@ import (
 	"github.com/tendermint/tendermint/types"
 	//"github.com/Masterminds/glide/msg"
 	"strconv"
+	"golang.org/x/net/html/atom"
+	peer2 "github.com/btcsuite/btcd/peer"
+	"github.com/go-playground/locales/cs"
 )
 
 const (
@@ -43,6 +46,9 @@ type ConsensusReactor struct {
 	mtx      sync.RWMutex
 	fastSync bool
 	eventBus *types.EventBus
+
+	ProposalPeerChannels []chan *types.Proposal
+	BlockPartsPeerChannels []chan *types.PartSet
 }
 
 type MyMessage struct {
@@ -55,6 +61,8 @@ func NewConsensusReactor(consensusState *ConsensusState, fastSync bool) *Consens
 	conR := &ConsensusReactor{
 		conS:     consensusState,
 		fastSync: fastSync,
+		ProposalPeerChannels: make([]chan *types.Proposal, 0),
+		BlockPartsPeerChannels: make([]chan *types.PartSet, 0),
 	}
 	conR.BaseReactor = *p2p.NewBaseReactor("ConsensusReactor", conR)
 	return conR
@@ -78,6 +86,8 @@ func (conR *ConsensusReactor) OnStart() error {
 			return err
 		}
 	}
+
+	go conR.RedBellyMsgHandler()
 
 	return nil
 }
@@ -164,6 +174,14 @@ func (conR *ConsensusReactor) AddPeer(peer p2p.Peer) {
 
 	go conR.testRoutine(peer, peerState)
 
+
+	PeerProposalChan := make(chan *types.Proposal)
+	PeerBlockPartsChan := make(chan *types.PartSet)
+	conR.ProposalPeerChannels = append(conR.ProposalPeerChannels, PeerProposalChan)
+	conR.BlockPartsPeerChannels = append(conR.BlockPartsPeerChannels, PeerBlockPartsChan)
+
+	go conR.RedBellyRoutine(peer, peerState, PeerProposalChan, PeerBlockPartsChan)
+
 	// Send our state to peer.
 	// If we're fast_syncing, broadcast a RoundStepMessage later upon SwitchToConsensus().
 	if !conR.FastSync() {
@@ -210,6 +228,10 @@ func (conR *ConsensusReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 			fmt.Println("Received message: " + strconv.Itoa(msg.Round) + " from " + src.NodeInfo().RemoteAddr)
 		case *MyMessage:
 			fmt.Println("Received message: " + strconv.Itoa(msg.Id) + " >>> " + msg.Name + " from " + src.NodeInfo().RemoteAddr)
+		case *RB_ProposalMessage:
+			conR.conS.peerMsgQueue <- msgInfo{msg, src.Key()}
+		case *RB_BlockPartMessage:
+			conR.conS.peerMsgQueue <- msgInfo{msg, src.Key()}
 		default:
 			fmt.Println("Received message from " + src.NodeInfo().RemoteAddr + " but msg.(type) not recognised")
 		}
@@ -623,7 +645,7 @@ func (conR *ConsensusReactor) gossipDataForCatchup(logger log.Logger, rs *cstype
 	}
 }
 
-func (conR *ConsensusReactor) gossipVotesRoutine(peer p2p.Peer, ps *PeerState) {
+func (conR *ConsensusReactor)  gossipVotesRoutine(peer p2p.Peer, ps *PeerState) {
 	logger := conR.Logger.With("peer", peer)
 
 	// Simple hack to throttle logs upon sleep.
@@ -717,6 +739,50 @@ func (conR *ConsensusReactor) testRoutine(peer p2p.Peer, ps *PeerState) {
 		}
 
 		time.Sleep(20*time.Second)
+	}
+}
+
+func (conR *ConsensusReactor) RedBellyMsgHandler() {
+	for {
+		select {
+			case proposal := <- conR.conS.RB_ProposalsChannel:
+				for _, ProposalChan := range conR.ProposalPeerChannels {
+					ProposalChan <- proposal
+				}
+			case blockParts := <- conR.conS.RB_BlockPartsChannel:
+				for _, BlockPartsChan := range conR.BlockPartsPeerChannels {
+					BlockPartsChan <- blockParts
+				}
+		}
+	}
+}
+
+func (conR *ConsensusReactor) RedBellyRoutine(peer p2p.Peer, ps *PeerState, ProposalChan chan *types.Proposal, BlockPartsChan chan *types.PartSet) {
+	for {
+		select {
+		case proposal := <- ProposalChan:
+			msg := &RB_ProposalMessage{
+				Proposal: proposal,
+			}
+			if peer.Send(RedBellyChannel, struct{ ConsensusMessage }{msg}) {
+				fmt.Println("Proposal sent to " + peer.NodeInfo().RemoteAddr)
+			} else {
+				fmt.Println("Proposal to " + peer.NodeInfo().RemoteAddr + " was not sent")
+			}
+		case blockParts := <- BlockPartsChan:
+			for i := 0; i < blockParts.Total(); i++ {
+				part := blockParts.GetPart(i)
+				msg := &RB_BlockPartMessage{
+					Height: conR.conS.Height,
+					Part: part,
+				}
+				if peer.Send(RedBellyChannel, struct{ ConsensusMessage }{msg}) {
+					fmt.Println("Block part %v sent to " + peer.NodeInfo().RemoteAddr, i)
+				} else {
+					fmt.Println("Block part %v to " + peer.NodeInfo().RemoteAddr + " was not sent", i)
+				}
+			}
+		}
 	}
 }
 
@@ -1274,6 +1340,8 @@ const (
 	msgTypeProposalHeartbeat = byte(0x20)
 
 	msgTypeMyMessage = byte(0x18)
+	msgTypeRB_Proposal = byte(0x19)
+	msgTypeRB_BlockPart = byte(0x21)
 )
 
 // ConsensusMessage is a message that can be sent and received on the ConsensusReactor
@@ -1292,6 +1360,8 @@ var _ = wire.RegisterInterface(
 	wire.ConcreteType{&VoteSetBitsMessage{}, msgTypeVoteSetBits},
 	wire.ConcreteType{&ProposalHeartbeatMessage{}, msgTypeProposalHeartbeat},
 	wire.ConcreteType{&MyMessage{}, msgTypeMyMessage},
+	wire.ConcreteType{&RB_ProposalMessage{}, msgTypeRB_Proposal},
+	wire.ConcreteType{&RB_BlockPartMessage{}, msgTypeRB_BlockPart},
 )
 
 // DecodeMessage decodes the given bytes into a ConsensusMessage.
@@ -1349,6 +1419,10 @@ func (m *ProposalMessage) String() string {
 	return fmt.Sprintf("[Proposal %v]", m.Proposal)
 }
 
+type RB_ProposalMessage struct {
+	Proposal *types.Proposal
+}
+
 //-------------------------------------
 
 // ProposalPOLMessage is sent when a previous proposal is re-proposed.
@@ -1375,6 +1449,11 @@ type BlockPartMessage struct {
 // String returns a string representation.
 func (m *BlockPartMessage) String() string {
 	return fmt.Sprintf("[BlockPart H:%v R:%v P:%v]", m.Height, m.Round, m.Part)
+}
+
+type RB_BlockPartMessage struct {
+	Height int64
+	Part   *types.Part
 }
 
 //-------------------------------------
