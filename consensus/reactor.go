@@ -20,9 +20,6 @@ import (
 	"github.com/tendermint/tendermint/types"
 	//"github.com/Masterminds/glide/msg"
 	"strconv"
-	"golang.org/x/net/html/atom"
-	peer2 "github.com/btcsuite/btcd/peer"
-	"github.com/go-playground/locales/cs"
 )
 
 const (

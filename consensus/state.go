@@ -19,8 +19,6 @@ import (
 	cstypes "github.com/tendermint/tendermint/consensus/types"
 	sm "github.com/tendermint/tendermint/state"
 	"github.com/tendermint/tendermint/types"
-	"github.com/go-playground/locales/cs"
-	"github.com/tendermint/go-wire/data"
 )
 
 //-----------------------------------------------------------------------------
