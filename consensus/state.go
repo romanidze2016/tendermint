@@ -864,7 +864,7 @@ func (cs *ConsensusState) RB_broadcast(height int64) {
 		cs.Logger.Debug(cmn.Fmt("Signed proposal block: %v", block))
 	} else {
 		if !cs.replayMode {
-			cs.Logger.Error("enterPropose: Error signing proposal", "height", height, "err", err)
+			cs.Logger.Error("RB_broadcast: Error signing proposal", "height", height, "err", err)
 		}
 	}
 }
