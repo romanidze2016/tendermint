@@ -19,7 +19,7 @@ import (
 	sm "github.com/tendermint/tendermint/state"
 	"github.com/tendermint/tendermint/types"
 	//"github.com/Masterminds/glide/msg"
-	"strconv"
+	//"strconv"
 )
 
 const (
@@ -222,7 +222,7 @@ func (conR *ConsensusReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 	fmt.Println(msg)
 
 	switch chID {
-	case RedBellyChannel:
+	/*case RedBellyChannel:
 		switch msg := msg.(type) {
 		case *BlockPartMessage:
 			fmt.Println("Received message: " + strconv.Itoa(msg.Round) + " from " + src.NodeInfo().RemoteAddr)
@@ -237,7 +237,7 @@ func (conR *ConsensusReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 			conR.conS.peerMsgQueue <- msgInfo{msg, src.Key()}
 		default:
 			fmt.Println("Received message from " + src.NodeInfo().RemoteAddr + " but msg.(type) not recognised")
-		}
+		}*/
 
 	case StateChannel:
 		switch msg := msg.(type) {
