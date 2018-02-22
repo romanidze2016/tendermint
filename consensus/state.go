@@ -655,8 +655,8 @@ func (cs *ConsensusState) handleTxsAvailable(height int64) {
 	cs.mtx.Lock()
 	defer cs.mtx.Unlock()
 	// we only need to do this for round 0
-	//cs.enterPropose(height, 0)
-	cs.RB_broadcast(height, 0)
+	cs.enterPropose(height, 0)
+	//cs.RB_broadcast(height, 0)
 }
 
 //-----------------------------------------------------------------------------
@@ -870,15 +870,15 @@ func (cs *ConsensusState) RB_broadcast(height int64, round int) {
 }
 
 func (cs *ConsensusState) RB_deliverProposal(proposal *types.Proposal, peerKey string) {
-	fmt.Println("Proposal received from " + peerKey + " peer but not saved FUCK YOU BITCHES")
-	fmt.Println(cs.Validators.GetByAddress([]byte(peerKey)))
+	fmt.Println("Proposal received from " + peerKey + " peer but not saved")
+
 	for _, v := range cs.Validators.Validators {
-		fmt.Println(v.Address.String())
+		fmt.Println(v.PubKey.KeyString())
 	}
 }
 
 func (cs *ConsensusState) RB_deliverBlockPart(height int64, blockPart *types.Part, peerKey string) {
-	fmt.Println("BlockPart received from " + peerKey + " peer but not added HATE THIS PEICE OF SHIT")
+	fmt.Println("BlockPart received from " + peerKey + " peer but not added")
 }
 
 func (cs *ConsensusState) isProposer() bool {
