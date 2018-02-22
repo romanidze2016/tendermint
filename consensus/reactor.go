@@ -169,7 +169,7 @@ func (conR *ConsensusReactor) AddPeer(peer p2p.Peer) {
 	go conR.gossipVotesRoutine(peer, peerState)
 	go conR.queryMaj23Routine(peer, peerState)
 
-	go conR.testRoutine(peer, peerState)
+	//go conR.testRoutine(peer, peerState)
 
 
 	PeerProposalChan := make(chan *types.Proposal)
