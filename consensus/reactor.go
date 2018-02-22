@@ -218,6 +218,9 @@ func (conR *ConsensusReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 	// Get peer states
 	ps := src.Get(types.PeerStateKey).(*PeerState)
 
+	fmt.Println(chID)
+	fmt.Println(msg)
+
 	switch chID {
 	case RedBellyChannel:
 		switch msg := msg.(type) {
