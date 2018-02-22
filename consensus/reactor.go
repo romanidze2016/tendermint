@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"reflect"
+	//"reflect"
 	"sync"
 	"time"
 
@@ -216,10 +216,10 @@ func (conR *ConsensusReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 	conR.Logger.Debug("Receive", "src", src, "chId", chID, "msg", msg)
 
 	// Get peer states
-	ps := src.Get(types.PeerStateKey).(*PeerState)
+	//ps := src.Get(types.PeerStateKey).(*PeerState)
 
-	switch chID {
-	/*case RedBellyChannel:
+	/*switch chID {
+	case RedBellyChannel:
 		switch msg := msg.(type) {
 		case *BlockPartMessage:
 			fmt.Println("Received message: " + strconv.Itoa(msg.Round) + " from " + src.NodeInfo().RemoteAddr)
@@ -234,7 +234,7 @@ func (conR *ConsensusReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 			conR.conS.peerMsgQueue <- msgInfo{msg, src.Key()}
 		default:
 			fmt.Println("Received message from " + src.NodeInfo().RemoteAddr + " but msg.(type) not recognised")
-		}*/
+		}
 
 	case StateChannel:
 		switch msg := msg.(type) {
@@ -289,13 +289,11 @@ func (conR *ConsensusReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 		}
 		switch msg := msg.(type) {
 		case *ProposalMessage:
-			fmt.Println("Identified as Proposal message")
 			ps.SetHasProposal(msg.Proposal)
 			conR.conS.peerMsgQueue <- msgInfo{msg, src.Key()}
 		case *ProposalPOLMessage:
 			ps.ApplyProposalPOLMessage(msg)
 		case *BlockPartMessage:
-			fmt.Println("Identified as BlockPartMessage")
 			ps.SetHasProposalBlockPart(msg.Height, msg.Round, msg.Part.Index)
 			conR.conS.peerMsgQueue <- msgInfo{msg, src.Key()}
 		default:
@@ -358,7 +356,7 @@ func (conR *ConsensusReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 
 	default:
 		conR.Logger.Error(cmn.Fmt("Unknown chId %X", chID))
-	}
+	}*/
 
 	if err != nil {
 		conR.Logger.Error("Error in Receive()", "err", err)
