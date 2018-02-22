@@ -218,9 +218,6 @@ func (conR *ConsensusReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 	// Get peer states
 	ps := src.Get(types.PeerStateKey).(*PeerState)
 
-	fmt.Println(chID)
-	fmt.Println(msg)
-
 	switch chID {
 	/*case RedBellyChannel:
 		switch msg := msg.(type) {
@@ -292,11 +289,13 @@ func (conR *ConsensusReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 		}
 		switch msg := msg.(type) {
 		case *ProposalMessage:
+			fmt.Println("Identified as Proposal message")
 			ps.SetHasProposal(msg.Proposal)
 			conR.conS.peerMsgQueue <- msgInfo{msg, src.Key()}
 		case *ProposalPOLMessage:
 			ps.ApplyProposalPOLMessage(msg)
 		case *BlockPartMessage:
+			fmt.Println("Identified as BlockPartMessage")
 			ps.SetHasProposalBlockPart(msg.Height, msg.Round, msg.Part.Index)
 			conR.conS.peerMsgQueue <- msgInfo{msg, src.Key()}
 		default:
