@@ -230,6 +230,7 @@ func (conR *ConsensusReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 			fmt.Println(src.NodeInfo().PubKey.String())
 			conR.conS.peerMsgQueue <- msgInfo{msg, src.NodeInfo().PubKey.String() + " Abdul sucks"}
 		case *RB_BlockPartMessage:
+			fmt.Println("Abdul is good")
 			conR.conS.peerMsgQueue <- msgInfo{msg, src.Key()}
 		default:
 			fmt.Println("Received message from " + src.NodeInfo().RemoteAddr + " but msg.(type) not recognised")
