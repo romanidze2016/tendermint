@@ -655,8 +655,8 @@ func (cs *ConsensusState) handleTxsAvailable(height int64) {
 	cs.mtx.Lock()
 	defer cs.mtx.Unlock()
 	// we only need to do this for round 0
-	cs.RB_broadcast(height)
 	cs.enterPropose(height, 0)
+	cs.RB_broadcast(height, 0)
 }
 
 //-----------------------------------------------------------------------------
@@ -806,7 +806,7 @@ func (cs *ConsensusState) enterPropose(height int64, round int) {
 	}
 }
 
-func (cs *ConsensusState) RB_broadcast(height int64) {
+func (cs *ConsensusState) RB_broadcast(height int64, round int) {
 	if cs.Height != height {
 		cs.Logger.Debug(cmn.Fmt("RB_broadcast(%v): Invalid args. Current step: %v/%v/%v", height, cs.Height, cs.Round, cs.Step))
 		return
@@ -841,7 +841,7 @@ func (cs *ConsensusState) RB_broadcast(height int64) {
 
 	// Make proposal
 	polRound, polBlockID := cs.Votes.POLInfo()
-	proposal := types.NewProposal(height, 0, blockParts.Header(), polRound, polBlockID)
+	proposal := types.NewProposal(height, round, blockParts.Header(), polRound, polBlockID)
 	if err := cs.privValidator.SignProposal(cs.state.ChainID, proposal); err == nil {
 		// Set fields
 		/*  fields set by setProposal and addBlockPart
