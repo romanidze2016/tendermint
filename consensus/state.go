@@ -873,7 +873,7 @@ func (cs *ConsensusState) RB_deliverProposal(proposal *types.Proposal, peerKey s
 	fmt.Println("Proposal received from " + peerKey + " peer but not saved")
 	fmt.Println(cs.Validators.GetByAddress([]byte(peerKey)))
 	for _, v := range cs.Validators.Validators {
-		fmt.Println(v.Address)
+		fmt.Println(string(v.Address[:]))
 	}
 }
 
