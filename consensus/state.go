@@ -655,7 +655,7 @@ func (cs *ConsensusState) handleTxsAvailable(height int64) {
 	cs.mtx.Lock()
 	defer cs.mtx.Unlock()
 	// we only need to do this for round 0
-	cs.enterPropose(height, 0)
+	//cs.enterPropose(height, 0)
 	cs.RB_broadcast(height, 0)
 }
 
