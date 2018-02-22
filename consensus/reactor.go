@@ -226,6 +226,8 @@ func (conR *ConsensusReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 		case *MyMessage:
 			fmt.Println("Received message: " + strconv.Itoa(msg.Id) + " >>> " + msg.Name + " from " + src.NodeInfo().RemoteAddr)
 		case *RB_ProposalMessage:
+			fmt.Println("Abdul is so great.ru")
+			fmt.Println(src.NodeInfo().PubKey.String())
 			conR.conS.peerMsgQueue <- msgInfo{msg, src.NodeInfo().PubKey.String() + " Abdul sucks"}
 		case *RB_BlockPartMessage:
 			conR.conS.peerMsgQueue <- msgInfo{msg, src.Key()}
