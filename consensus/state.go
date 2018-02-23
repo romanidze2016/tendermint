@@ -119,6 +119,8 @@ type ConsensusState struct {
 
 	RB_ProposalsChannel chan *types.Proposal
 	RB_BlockPartsChannel chan *types.PartSet
+
+	ValidatorId int
 }
 
 // NewConsensusState returns a new ConsensusState.
@@ -154,6 +156,14 @@ func NewConsensusState(config *cfg.ConsensusConfig, state sm.State, blockExec *s
 
 	cs.RB_ProposalsChannel = make(chan *types.Proposal)
 	cs.RB_BlockPartsChannel = make(chan *types.PartSet)
+
+	_, localValidator := cs.Validators.GetByAddress(cs.privValidator.GetAddress())
+	for index, validator := range cs.Validators.Validators {
+		if validator == localValidator {
+			cs.ValidatorId = index
+			fmt.Println("Local index = v%", cs.ValidatorId)
+		}
+	}
 
 	return cs
 }
@@ -655,8 +665,8 @@ func (cs *ConsensusState) handleTxsAvailable(height int64) {
 	cs.mtx.Lock()
 	defer cs.mtx.Unlock()
 	// we only need to do this for round 0
-	//cs.enterPropose(height, 0)
-	cs.RB_broadcast(height, 0)
+	cs.enterPropose(height, 0)
+	//cs.RB_broadcast(height, 0)
 }
 
 //-----------------------------------------------------------------------------
@@ -873,7 +883,7 @@ func (cs *ConsensusState) RB_deliverProposal(proposal *types.Proposal, peerKey s
 	fmt.Println("Proposal received from " + peerKey + " peer but not saved")
 	fmt.Println()
 	for _, v := range cs.Validators.Validators {
-		fmt.Println(v.PubKey.KeyString())
+		fmt.Println(v.Address)
 	}
 }
 
