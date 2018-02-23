@@ -59,6 +59,15 @@ func (v *Validator) CompareAccum(other *Validator) *Validator {
 	}
 }
 
+// Checks if the validators are the same.
+func (v *Validator) Equals(other *Validator) bool {
+	if bytes.Compare(v.Address, other.Address) == 0 && v.Accum == other.Accum{
+		return true
+	} else {
+		return false
+	}
+}
+
 func (v *Validator) String() string {
 	if v == nil {
 		return "nil-Validator"
