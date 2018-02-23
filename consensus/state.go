@@ -269,6 +269,8 @@ func (cs *ConsensusState) OnStart() error {
 	//declare Validator ID
 	_, localValidator := cs.Validators.GetByAddress(cs.privValidator.GetAddress())
 	for index, validator := range cs.Validators.Validators {
+		fmt.Println(validator)
+		fmt.Println(localValidator)
 		if validator == localValidator {
 			cs.ValidatorId = index
 			fmt.Println("Local index = v%", cs.ValidatorId)
