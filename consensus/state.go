@@ -274,6 +274,7 @@ func (cs *ConsensusState) OnStart() error {
 			fmt.Println("Local index = v%", cs.ValidatorId)
 		}
 	}
+	fmt.Println("Local index = %v", cs.ValidatorId)
 
 	// now start the receiveRoutine
 	go cs.receiveRoutine(0)
