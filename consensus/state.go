@@ -271,7 +271,7 @@ func (cs *ConsensusState) OnStart() error {
 	for index, validator := range cs.Validators.Validators {
 		fmt.Println(validator)
 		fmt.Println(localValidator)
-		if validator == localValidator {
+		if validator.CompareAccum(localValidator) == nil {
 			cs.ValidatorId = index
 			fmt.Println("Local index = v%", cs.ValidatorId)
 		}
