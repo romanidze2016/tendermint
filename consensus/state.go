@@ -157,14 +157,6 @@ func NewConsensusState(config *cfg.ConsensusConfig, state sm.State, blockExec *s
 	cs.RB_ProposalsChannel = make(chan *types.Proposal)
 	cs.RB_BlockPartsChannel = make(chan *types.PartSet)
 
-	_, localValidator := cs.Validators.GetByAddress(cs.privValidator.GetAddress())
-	for index, validator := range cs.Validators.Validators {
-		if validator == localValidator {
-			cs.ValidatorId = index
-			fmt.Println("Local index = v%", cs.ValidatorId)
-		}
-	}
-
 	return cs
 }
 
@@ -271,6 +263,15 @@ func (cs *ConsensusState) OnStart() error {
 			cs.Logger.Error("Error on catchup replay. Proceeding to start ConsensusState anyway", "err", err.Error())
 			// NOTE: if we ever do return an error here,
 			// make sure to stop the timeoutTicker
+		}
+	}
+
+	//declare Validator ID
+	_, localValidator := cs.Validators.GetByAddress(cs.privValidator.GetAddress())
+	for index, validator := range cs.Validators.Validators {
+		if validator == localValidator {
+			cs.ValidatorId = index
+			fmt.Println("Local index = v%", cs.ValidatorId)
 		}
 	}
 
