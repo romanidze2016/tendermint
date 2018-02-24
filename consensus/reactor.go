@@ -226,9 +226,9 @@ func (conR *ConsensusReactor) Receive(chID byte, src p2p.Peer, msgBytes []byte) 
 		case *MyMessage:
 			fmt.Println("Received message: " + strconv.Itoa(msg.Id) + " >>> " + msg.Name + " from " + src.NodeInfo().RemoteAddr)
 		case *RB_ProposalMessage:
-			conR.conS.peerMsgQueue <- msgInfo{msg, src.NodeInfo().PubKey.String()}
+			conR.conS.peerMsgQueue <- msgInfo{msg, src.NodeInfo().RemoteAddr}
 		case *RB_BlockPartMessage:
-			conR.conS.peerMsgQueue <- msgInfo{msg, src.NodeInfo().PubKey.String()}
+			conR.conS.peerMsgQueue <- msgInfo{msg, src.NodeInfo().RemoteAddr}
 		default:
 			fmt.Println("Received message from " + src.NodeInfo().RemoteAddr + " but msg.(type) not recognised")
 		}
@@ -760,6 +760,7 @@ func (conR *ConsensusReactor) RedBellyRoutine(peer p2p.Peer, ps *PeerState, Prop
 		case proposal := <- ProposalChan:
 			msg := &RB_ProposalMessage{
 				Proposal: proposal,
+				ValidatorId: conR.conS.ValidatorId,
 			}
 			if peer.Send(RedBellyChannel, struct{ ConsensusMessage }{msg}) {
 				fmt.Println("Proposal sent to " + peer.NodeInfo().RemoteAddr)
@@ -772,6 +773,7 @@ func (conR *ConsensusReactor) RedBellyRoutine(peer p2p.Peer, ps *PeerState, Prop
 				msg := &RB_BlockPartMessage{
 					Height: conR.conS.Height,
 					Part: part,
+					ValidatorId: conR.conS.ValidatorId,
 				}
 				if peer.Send(RedBellyChannel, struct{ ConsensusMessage }{msg}) {
 					fmt.Println("Block part %v sent to " + peer.NodeInfo().RemoteAddr, i)
@@ -1418,6 +1420,7 @@ func (m *ProposalMessage) String() string {
 
 type RB_ProposalMessage struct {
 	Proposal *types.Proposal
+	ValidatorId int
 }
 
 //-------------------------------------
@@ -1451,6 +1454,7 @@ func (m *BlockPartMessage) String() string {
 type RB_BlockPartMessage struct {
 	Height int64
 	Part   *types.Part
+	ValidatorId int
 }
 
 //-------------------------------------

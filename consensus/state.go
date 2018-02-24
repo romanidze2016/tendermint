@@ -113,9 +113,9 @@ type ConsensusState struct {
 	done chan struct{}
 
 	//RB variables
-	RB_Proposals           map[*types.Validator]*types.Proposal
-	RB_ProposalBlocks      map[*types.Validator]*types.Block
-	RB_ProposalBlockParts  map[*types.Validator]*types.PartSet
+	RB_Proposals           map[int]*types.Proposal
+	RB_ProposalBlocks      map[int]*types.Block
+	RB_ProposalBlockParts  map[int]*types.PartSet
 
 	RB_ProposalsChannel chan *types.Proposal
 	RB_BlockPartsChannel chan *types.PartSet
@@ -150,9 +150,9 @@ func NewConsensusState(config *cfg.ConsensusConfig, state sm.State, blockExec *s
 	cs.BaseService = *cmn.NewBaseService(nil, "ConsensusState", cs)
 
 	//RB
-	cs.RB_Proposals = make(map[*types.Validator]*types.Proposal)
-	cs.RB_ProposalBlocks = make(map[*types.Validator]*types.Block)
-	cs.RB_ProposalBlockParts = make(map[*types.Validator]*types.PartSet)
+	cs.RB_Proposals = make(map[int]*types.Proposal)
+	cs.RB_ProposalBlocks = make(map[int]*types.Block)
+	cs.RB_ProposalBlockParts = make(map[int]*types.PartSet)
 
 	cs.RB_ProposalsChannel = make(chan *types.Proposal)
 	cs.RB_BlockPartsChannel = make(chan *types.PartSet)
@@ -271,10 +271,8 @@ func (cs *ConsensusState) OnStart() error {
 	for index, validator := range cs.Validators.Validators {
 		if validator.Equals(localValidator) {
 			cs.ValidatorId = index
-			fmt.Println("Local index = v%", cs.ValidatorId)
 		}
 	}
-	fmt.Println("Local index = %v", cs.ValidatorId)
 
 	// now start the receiveRoutine
 	go cs.receiveRoutine(0)
@@ -617,9 +615,9 @@ func (cs *ConsensusState) handleMsg(mi msgInfo) {
 		// the peer is sending us CatchupCommit precommits.
 		// We could make note of this and help filter in broadcastHasVoteMessage().
 	case *RB_ProposalMessage:
-		cs.RB_deliverProposal(msg.Proposal, peerKey)
+		cs.RB_deliverProposal(msg.Proposal, msg.ValidatorId, peerKey)
 	case *RB_BlockPartMessage:
-		cs.RB_deliverBlockPart(msg.Height, msg.Part, peerKey)
+		cs.RB_deliverBlockPart(msg.Height, msg.Part, msg.ValidatorId, peerKey)
 	default:
 		cs.Logger.Error("Unknown msg type", reflect.TypeOf(msg))
 	}
@@ -863,10 +861,9 @@ func (cs *ConsensusState) RB_broadcast(height int64, round int) {
 		*/
 
 		//save the proposal and the block locally
-		_, localValidator := cs.Validators.GetByAddress(cs.privValidator.GetAddress())
-		cs.RB_Proposals[localValidator] = proposal
-		cs.RB_ProposalBlocks[localValidator] = block
-		cs.RB_ProposalBlockParts[localValidator] = blockParts
+		cs.RB_Proposals[cs.ValidatorId] = proposal
+		cs.RB_ProposalBlocks[cs.ValidatorId] = block
+		cs.RB_ProposalBlockParts[cs.ValidatorId] = blockParts
 
 		// send proposal and block parts on internal msg queue
 		cs.RB_ProposalsChannel <- proposal
@@ -881,16 +878,56 @@ func (cs *ConsensusState) RB_broadcast(height int64, round int) {
 	}
 }
 
-func (cs *ConsensusState) RB_deliverProposal(proposal *types.Proposal, peerKey string) {
-	fmt.Println("Proposal received from " + peerKey + " peer but not saved")
-	fmt.Println()
-	for _, v := range cs.Validators.Validators {
-		fmt.Println(v.Address)
+func (cs *ConsensusState) RB_deliverProposal(proposal *types.Proposal, validator int, peerKey string) {
+	cs.RB_Proposals[validator] = proposal
+
+	// Already have one
+	// TODO: possibly catch double proposals
+	if cs.RB_Proposals[validator] != nil {
+		fmt.Println("Received proposal already exists in the local array")
+		return
 	}
+
+	// Does not apply
+	if proposal.Height != cs.Height {
+		fmt.Println("Proposal's height does not match with the local height")
+		return
+	}
+
+	cs.RB_Proposals[validator] = proposal
+	cs.RB_ProposalBlockParts[validator] = types.NewPartSetFromHeader(proposal.BlockPartsHeader)
+	fmt.Println("Proposal and ProposalBlockParts header added to the array")
 }
 
-func (cs *ConsensusState) RB_deliverBlockPart(height int64, blockPart *types.Part, peerKey string) {
-	fmt.Println("BlockPart received from " + peerKey + " peer but not added")
+func (cs *ConsensusState) RB_deliverBlockPart(height int64, blockPart *types.Part, validator int, peerKey string) {
+	// Blocks might be reused, so round mismatch is OK
+	if cs.Height != height {
+		fmt.Println("BlockPart's height does not match the local height")
+		return
+	}
+
+	// We're not expecting a block part.
+	if cs.RB_ProposalBlockParts[validator] == nil {
+		fmt.Println("Proposal from the blockPart's validator has not been received yet. Not expecting block this block part")
+		return
+	}
+
+	added, err := cs.RB_ProposalBlockParts[validator].AddPart(blockPart, true)
+	if err != nil {
+		fmt.Println("Could not add the received block part to the other ones")
+		return
+	}
+	fmt.Println("Recieved block part has been added to the array")
+	if added && cs.RB_ProposalBlockParts[validator].IsComplete() {
+		// Added and completed!
+		var n int
+		var err error
+		cs.RB_ProposalBlocks[validator] = wire.ReadBinary(&types.Block{}, cs.RB_ProposalBlockParts[validator].GetReader(),
+			cs.state.ConsensusParams.BlockSize.MaxBytes, &n, &err).(*types.Block)
+		// NOTE: it's possible to receive complete proposal blocks for future rounds without having the proposal
+		fmt.Println("Received complete proposal block")
+		cs.Logger.Info("Received complete proposal block", "height", cs.ProposalBlock.Height, "hash", cs.ProposalBlock.Hash())
+	}
 }
 
 func (cs *ConsensusState) isProposer() bool {
