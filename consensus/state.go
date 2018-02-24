@@ -885,6 +885,9 @@ func (cs *ConsensusState) RB_deliverProposal(proposal *types.Proposal, validator
 	// TODO: possibly catch double proposals
 	if cs.RB_Proposals[validator] != nil {
 		fmt.Println("Received proposal already exists in the local array")
+		fmt.Println("--------")
+		fmt.Println(cs.RB_Proposals[validator])
+		fmt.Println("--------")
 		return
 	}
 
